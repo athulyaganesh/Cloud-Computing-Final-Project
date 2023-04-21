@@ -56,9 +56,7 @@ Users_tbl = Table('users', Users.metadata)
 external_stylesheets = [
     dbc.themes.FLATLY,
     'https://codepen.io/chriddyp/pen/bWLwgP.css'
-
 ]
-
 
 app = DashProxy(__name__, external_stylesheets=external_stylesheets, transforms=[MultiplexerTransform()])
 app.title = 'CS 5165/6065 Final'
@@ -298,7 +296,6 @@ def serve_layout():
             }
         ),
 
-
         html.P("Use the input below to update tables. Each uploaded file must be a CSV. If the filename contains 'household', 'transaction' or 'product', the corresponding table will be updated"),
         dcc.Upload(
             id='upload-data',
@@ -514,12 +511,6 @@ def update_table(page_current, page_size, sort_by, filter):
     page = page_current
     size = page_size
     return dff.iloc[page * size: (page + 1) * size].to_dict('records')
-
-
-
-
-
-
 
 
 ####################################
