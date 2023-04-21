@@ -117,8 +117,8 @@ create = html.Div([
         html.Br(),
         html.Br(),
         html.Br(),
-        html.H1('Cloud Computing Final Project'),
-        html.P('Use the form below to create a user account'),
+        html.H1('Cloud Computing Final Project'),html.Br(),
+        html.H2('''Please sign up to continue:''', id='h1'),
         html.Br(),
         dcc.Location(id='create_user', refresh=True),
         dcc.Input(id="username"
@@ -138,25 +138,38 @@ create = html.Div([
             , maxLength = 50),
         html.Br(), html.Br(),
         html.Button('Create User', id='submit-val', n_clicks=0, style={'backgroundColor':'white'}),
-        html.Br(),html.Br(),html.Br(),html.Br(),
-        html.Div(id='container-button-basic')
+        html.Br(),html.Br(),
+        html.Div(id='container-button-basic'),
+        dcc.Link(html.Button("Login", style={'backgroundColor':'white'}), href="/", refresh=True),
+        html.Br(), html.Br() ,html.Br(),html.Br(),
     ], style={'margin' : 'auto', 'width' : '50%', 'text-align' : 'center','backgroundColor':'#DAF7A6' })#end div
 
 # login layout
-login =  html.Div([dcc.Location(id='url_login', refresh=True)
+login =  html.Div([dcc.Location(id='url_login', refresh=True),
+        html.Br(),
+        html.Br(),
+        html.Br(),
+        html.Br(),
+        html.Br(),
+        html.Br(),
+        html.Br()
+            , html.H1("Cloud Computing Final Project"),
+            html.Br()
             , html.H2('''Please log in to continue:''', id='h1')
             , dcc.Input(placeholder='Enter your username',
                     type='text',
-                    id='uname-box'), html.Br()
+                    id='uname-box'), html.Br(),  html.Br()
             , dcc.Input(placeholder='Enter your password',
                     type='password',
                     id='pwd-box'), html.Br(), html.Br()
             , html.Button(children='Login',
                     n_clicks=0,
                     type='submit',
-                    id='login-button')
-            , html.Div(children='', id='output-state')
-        ] , style={'margin' : 'auto', 'width' : '50%', 'text-align' : 'center'}) #end div
+                    id='login-button', style={'backgroundColor':'white'}),  html.Br(),  html.Br()
+            , html.Div(children='', id='output-state'),
+            dcc.Link(html.Button("Create an Account", style={'backgroundColor':'white'}), href="/create", refresh=True),
+            html.Br(), html.Br(), html.Br(), html.Br()
+        ] , style={'margin' : 'auto', 'width' : '50%', 'text-align' : 'center', 'backgroundColor':'#F7B3A6'}, ) #end div
 
 success = serve_layout_demo()
 
@@ -193,9 +206,9 @@ def load_user(user_id):
 
 def display_page(pathname):
     if pathname == '/':
-        return create
-    elif pathname == '/login':
         return login
+    elif pathname == '/create':
+        return create
     elif pathname == '/success':
         if current_user.is_authenticated:
             return success
