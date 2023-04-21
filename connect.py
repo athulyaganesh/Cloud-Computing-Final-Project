@@ -42,12 +42,15 @@ engine = create_engine(
 db = SQLAlchemy()
 config = configparser.ConfigParser()
 
+
 class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(15), unique=True, nullable = False)
     email = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(80))
 Users_tbl = Table('users', Users.metadata)
+
+
 
 ####################################
 # Application Setup
@@ -83,18 +86,8 @@ login_manager.login_view = '/login'
 class Users(UserMixin, Users):
     pass
 
-######################
-# Graphs
-######################
 
-graphs = {} # container to hold all figures
-households_df = None
-transactions_df = None
-products_df = None
-transactions_combined_household_df = None
-all_three_combined_df = None
-
-def serve_layout_demo():
+def display_dashboard():
     dashboard_layout = html.Div(children=[
 
         html.H1(children=['Cloud Computing Final Project']),
@@ -171,18 +164,20 @@ login =  html.Div([dcc.Location(id='url_login', refresh=True),
             html.Br(), html.Br(), html.Br(), html.Br()
         ] , style={'margin' : 'auto', 'width' : '50%', 'text-align' : 'center', 'backgroundColor':'#F7B3A6'}, ) #end div
 
-success = serve_layout_demo()
+success = display_dashboard()
 
 failed = html.Div([ dcc.Location(id='url_login_df', refresh=True)
             , html.Div([html.H2('Log in Failed. Please try again.')
-                    , html.Button(id='back-button', children='Go back', n_clicks=0)
+                    ,dcc.Link(html.Button("Login", style={'backgroundColor':'white'}), href="/", refresh=True),
                 ]) #end div
         ], style={'margin' : 'auto', 'width' : '50%', 'text-align' : 'center'}) #end div
+
+
 logout = html.Div([dcc.Location(id='logout', refresh=True)
         , html.Br()
         , html.Div(html.H2('You have been logged out - Please login'))
         , html.Br()
-        , html.Button(id='back-button', children='Go back', n_clicks=0)
+        ,dcc.Link(html.Button("Login", style={'backgroundColor':'white'}), href="/", refresh=True),
     ], style={'margin' : 'auto', 'width' : '50%', 'text-align' : 'center'})#end div
     
 app.layout= html.Div([
@@ -222,7 +217,7 @@ def display_page(pathname):
             logout_user()
             return logout
         else:
-            return logout
+            return failed
     else:
         return '404'
 

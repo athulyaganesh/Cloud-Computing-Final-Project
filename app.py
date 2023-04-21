@@ -569,9 +569,10 @@ data = html.Div([dcc.Dropdown(
 
 failed = html.Div([ dcc.Location(id='url_login_df', refresh=True)
             , html.Div([html.H2('Log in Failed. Please try again.')
-                    , html.Button(id='back-button', children='Go back', n_clicks=0)
+                    , html.Button(id='back-button', children='Go back to Login', n_clicks=0)
                 ]) #end div
         ], style={'margin' : 'auto', 'width' : '50%', 'text-align' : 'center'}) #end div
+
 logout = html.Div([dcc.Location(id='logout', refresh=True)
         , html.Br()
         , html.Div(html.H2('You have been logged out - Please login'))
@@ -608,7 +609,7 @@ def display_page(pathname):
             logout_user()
             return logout
         else:
-            return logout
+            return failed
     else:
         return '404'
 #set the callback for the dropdown interactivity
