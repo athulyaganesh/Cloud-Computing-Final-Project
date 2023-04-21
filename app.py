@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore")
 
 username = 'anusha'
 password = 'Password123'
-database = 'mysql'
+database = 'cloud_db'
 hostname = 'cloud-server.mysql.database.azure.com'
 root_ca = '/Users/anusha/Desktop/Cloud_Computing/CS6065_Final_Public/DigiCertGlobalRootCA.crt.pem'
 
