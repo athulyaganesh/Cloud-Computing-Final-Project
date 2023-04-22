@@ -42,14 +42,12 @@ engine = create_engine(
 db = SQLAlchemy()
 config = configparser.ConfigParser()
 
-
 class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(15), unique=True, nullable = False)
     email = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(80))
 Users_tbl = Table('users', Users.metadata)
-
 
 
 ####################################
@@ -64,7 +62,7 @@ external_stylesheets = [
 # app = dash.Dash(__name__)
 app = DashProxy(__name__, external_stylesheets=external_stylesheets, transforms=[MultiplexerTransform()])
 app.title = 'Cloud Computing Final Project'
-app.layout = html.Div("Hello World")
+app.layout = html.Div("Please work!")
 
 server = app.server
 app.config.suppress_callback_exceptions = True
@@ -80,12 +78,12 @@ db.init_app(server)
 # Setup the LoginManager for the server
 login_manager = LoginManager()
 login_manager.init_app(server)
-login_manager.login_view = '/login'
+login_manager.login_view = '/'
+
 #User as base
 # Create User class with UserMixin
 class Users(UserMixin, Users):
     pass
-
 
 def display_dashboard():
     dashboard_layout = html.Div(children=[
@@ -93,9 +91,9 @@ def display_dashboard():
         html.H1(children=['Cloud Computing Final Project']),
         html.P(['Athulya Ganesh', html.Br(),'Anusha Chitranshi']),
         html.Hr(),
-        html.H4("Retail Dashboard")])
+        html.H4("Retail Dashboard"),
+        dcc.Link(html.Button("Login", style={'backgroundColor': 'white'}), href="/", refresh=True)])
     return dashboard_layout
-
 
 ####################################
 # USER LOGIN AND PAGE ROUTING
@@ -103,13 +101,7 @@ def display_dashboard():
 
 # create user layout
 create = html.Div([ 
-        html.Br(),
-        html.Br(),
-        html.Br(),
-        html.Br(),
-        html.Br(),
-        html.Br(),
-        html.Br(),
+        html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
         html.H1('Cloud Computing Final Project'),html.Br(),
         html.H2('''Please sign up to continue:''', id='h1'),
         html.Br(),
@@ -139,16 +131,10 @@ create = html.Div([
 
 # login layout
 login =  html.Div([dcc.Location(id='url_login', refresh=True),
-        html.Br(),
-        html.Br(),
-        html.Br(),
-        html.Br(),
-        html.Br(),
-        html.Br(),
-        html.Br()
+        html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),html.Br()
             , html.H1("Cloud Computing Final Project"),
             html.Br()
-            , html.H2('''Please log in to continue:''', id='h1')
+            , html.H2('''Please log in to continue:''', id='h1'), html.Br()
             , dcc.Input(placeholder='Enter your username',
                     type='text',
                     id='uname-box'), html.Br(),  html.Br()
@@ -179,21 +165,47 @@ logout = html.Div([dcc.Location(id='logout', refresh=True)
         , html.Br()
         ,dcc.Link(html.Button("Login", style={'backgroundColor':'white'}), href="/", refresh=True),
     ], style={'margin' : 'auto', 'width' : '50%', 'text-align' : 'center'})#end div
-    
-app.layout= html.Div([
-            html.Div(id='page-content', className='content')
-            ,  dcc.Location(id='url', refresh=False)
-        ])
+
+
+questions = html.Div([
+    html.Div([
+    html.H1('Retail Questions'),html.Br(),
+    html.Marquee(html.H2("WHAT DO WE WANT???")),html.Br(),
+    ], style={'margin':'auto', 'text-align' : 'center', 'backgroundColor':'#C5DBFC'}),
+    html.Div([
+        html.P(html.B('1. How does customer engagement change over time? Do households spend less or more? What categories are growing or shrinking with changing customer engagement?'))
+    ]),
+    html.P(html.B('2. What demographic factors appear to affect customer engagement? How do they C.E. with certain categories? How might we re-engage customers within the store? Or within a certain category?')),
+    html.P(html.B('3. What categories are growing or shrinking with changing customer engagement?')),
+    html.P(html.B('4. Which demographic factors (e.g. household size, presence of children, income) appear to affect customer engagement?')),
+    html.P(html.B('5. Provide a short write-up on which Data Science Predictive modeling techniques would be most suitable to reasonably answer the questions below.  Please see The Top 10 Machine Learning Algorithms for model section. (No more than 200 words) (2 points)')),
+
+    html.Div([
+    html.H1('Retail Answers'),html.Br(),
+    html.Marquee(html.H2("MONEY!!!!!!")),html.Br(),
+], style={'margin': 'auto', 'text-align': 'center', 'backgroundColor':'#C5DBFC'}),
+
+    html.Div([
+        html.P(html.I('1. TODO: ANSWER THIS '))
+    ]),
+    html.P(html.I('2. TODO: ANSWER THIS ')), #TODO
+    html.P(html.I('3. TODO: ANSWER THIS ')), #TODO
+    html.P(html.I('4. TODO: END MY LIFE')), #TODO
+    html.P(html.I('5. TODO: GIVE ME AN A PLS')) #TODO
+], style={'margin': 'auto', 'text-align': 'center', 'backgroundColor':'#C5DBFC'})
 
 
 app.layout= html.Div([
             html.Div(id='page-content', className='content')
             ,  dcc.Location(id='url', refresh=False)
         ])
+
+
 # callback to reload the user object
 @login_manager.user_loader
 def load_user(user_id):
     return Users.query.get(int(user_id))
+
 @app.callback(
     Output('page-content', 'children')
     , [Input('url', 'pathname')])
@@ -218,8 +230,62 @@ def display_page(pathname):
             return logout
         else:
             return failed
+    elif pathname == '/questions':
+        return questions
     else:
-        return '404'
+        return 'Check your URL and try again.'
+
+@app.callback(
+    Output('url_login', 'pathname')
+    , [Input('login-button', 'n_clicks')]
+    , [State('uname-box', 'value'), State('pwd-box', 'value')])
+
+def successful(n_clicks, input1, input2):
+    user = Users.query.filter_by(username=input1).first()
+    if user:
+        if check_password_hash(user.password, input2):
+            login_user(user)
+            return '/success'
+        else:
+            pass
+    else:
+        pass
+
+@app.callback(
+    Output('output-state', 'children')
+    , [Input('login-button', 'n_clicks')]
+    , [State('uname-box', 'value'), State('pwd-box', 'value')])
+def update_output(n_clicks, input1, input2):
+    if n_clicks > 0:
+        user = Users.query.filter_by(username=input1).first()
+        if user:
+            if check_password_hash(user.password, input2):
+                return ''
+            else:
+                return 'Incorrect username or password'
+        else:
+            return 'Incorrect username or password'
+    else:
+        return ''
+@app.callback(
+    Output('url_login_success', 'pathname')
+    , [Input('back-button', 'n_clicks')])
+def logout_dashboard(n_clicks):
+    if n_clicks > 0:
+        return '/'
+@app.callback(
+    Output('url_login_df', 'pathname')
+    , [Input('back-button', 'n_clicks')])
+def logout_dashboard(n_clicks):
+    if n_clicks > 0:
+        return '/'
+# Create callbacks
+@app.callback(
+    Output('url_logout', 'pathname')
+    , [Input('back-button', 'n_clicks')])
+def logout_dashboard(n_clicks):
+    if n_clicks > 0:
+        return '/'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='80', debug=True)
