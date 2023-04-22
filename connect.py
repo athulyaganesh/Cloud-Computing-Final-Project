@@ -221,9 +221,9 @@ def display_page(pathname):
             return success
         else:
             return failed
-    elif pathname =='/data':
-        if current_user.is_authenticated:
-            return data
+    #elif pathname =='/data':
+       # if current_user.is_authenticated:
+           # return data
     elif pathname == '/logout':
         if current_user.is_authenticated:
             logout_user()
