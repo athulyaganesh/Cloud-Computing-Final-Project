@@ -10,6 +10,8 @@ import os
 from flask_login import login_user, logout_user, current_user, LoginManager, UserMixin
 from flask import redirect
 import configparser
+import plotly.express as px
+import pandas as pd
 
 warnings.filterwarnings("ignore")
 
@@ -20,7 +22,7 @@ warnings.filterwarnings("ignore")
 #ANUSHAS DB
 username = 'anusha'
 password = 'Password123'
-database = 'cloud_db'
+database = 'sample3'
 hostname = 'cloud-server.mysql.database.azure.com'
 root_ca = '/Users/anusha/Desktop/Cloud_Computing/CS6065_Final_Public/DigiCertGlobalRootCA.crt.pem'
 
@@ -56,17 +58,15 @@ db = SQLAlchemy()
 config = configparser.ConfigParser()
 
 class Users(db.Model):
-    users_id = db.Column(db.Integer, primary_key=True)
+    users_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(15), unique=True, nullable = False)
-    email = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(1000))
-
+    email = db.Column(db.String(50), unique=True)
+    
     def get_id(self):
         return self.users_id
 
-
 Users_tbl = Table('users', Users.metadata)
-
 
 ####################################
 # Application Setup
@@ -105,14 +105,265 @@ class Users(UserMixin, Users):
     def get_id(self):
         return self.users_id
 
+######################
+# Graphs
+######################
+
+graphs = {}  # container to hold all graphs
+households_df = None
+transactions_df = None
+products_df = None
+transactions_combined_household_df = None
+all_three_combined_df = None
+
+def get_figures():
+    global graphs
+    global households_df
+    global transactions_df
+    global products_df
+    global transactions_combined_household_df
+    global all_three_combined_df
+
+    if all_three_combined_df is None:
+        # debug_engine = create_engine('sqlite:///db.sql', echo=False)
+        conn = engine
+
+        # read data from database
+        households_df = pd.read_sql('SELECT * FROM household', conn)
+        transactions_df = pd.read_sql('SELECT * FROM transaction', conn)
+        transactions_df['purchase_month'] = pd.DatetimeIndex(transactions_df['purchase_']).month
+        products_df = pd.read_sql('SELECT * FROM product', conn)
+
+        # combine data frames
+        transactions_combined_household_df = transactions_df.merge(households_df, on='hshd_num', how='left')
+        all_three_combined_df = transactions_combined_household_df.merge(products_df, on='product_num', how='left')
+
+   
+    all_three_combined_df['year']=all_three_combined_df['year'].astype(int)
+    all_three_combined_df['units']=all_three_combined_df['units'].astype(int)
+    all_three_combined_df['spend']=all_three_combined_df['spend'].astype(float)
+    all_three_combined_df['purchase_month']=all_three_combined_df['purchase_month'].astype(int)
+    all_three_combined_df['week_num']=all_three_combined_df['week_num'].astype(int)
+
+    # units by year
+    units_year_df = pd.DataFrame({
+        'YEAR': ['2018', '2019', '2020','2021'],
+        'UNITS': [all_three_combined_df.loc[all_three_combined_df['year'] == 2018, 'units'].sum(),
+                  all_three_combined_df.loc[all_three_combined_df['year'] == 2019, 'units'].sum(),
+                  all_three_combined_df.loc[all_three_combined_df['year'] == 2020, 'units'].sum(),
+                  all_three_combined_df.loc[all_three_combined_df['year'] == 2021, 'units'].sum()]
+    })
+
+    graphs['fig_units_by_year'] = px.bar(units_year_df, x="YEAR", y="UNITS", title='Units by Year')
+
+    # units by month
+    units_month_df = pd.DataFrame({
+        'PURCHASE_MONTH': [month for month in range(1, 13)],
+        'UNITS': [
+            all_three_combined_df.loc[all_three_combined_df['purchase_month'] == month, 'units'].sum() for month in
+            range(1, 13)
+        ]
+    })
+    graphs['fig_units_by_month'] = px.line(units_month_df, x="PURCHASE_MONTH", y="UNITS", title="Units by Month",
+                                         markers=True)
+
+    # units by week
+    units_week_df = pd.DataFrame({
+        'WEEK_NUM': [week for week in range(1, 53)],
+        'UNITS': [
+            all_three_combined_df.loc[all_three_combined_df['week_num'] == week, 'units'].sum() for week in range(1, 53)
+        ]
+    })
+    graphs['fig_units_by_week'] = px.line(units_week_df, x="WEEK_NUM", y="UNITS", title="Units by Week", markers=True)
+
+    # units by store region
+    units_region_df = pd.DataFrame({
+        'STORE_REGION': list(all_three_combined_df['store_r'].unique()),
+        'UNITS': [
+            all_three_combined_df.loc[all_three_combined_df['store_r'] == store_region, 'units'].sum() for store_region
+            in list(all_three_combined_df['store_r'].unique())
+        ]
+    })
+    graphs['fig_units_by_region'] = px.pie(units_region_df, values='UNITS', names='STORE_REGION',
+                                         title='Units by Store Region')
+
+    # spend by year
+    spend_year_df = pd.DataFrame({
+        'YEAR': ['2018', '2019', '2020', '2021'],
+        'SPEND': [all_three_combined_df.loc[all_three_combined_df['year'] == 2018, 'spend'].sum(),
+                  all_three_combined_df.loc[all_three_combined_df['year'] == 2019, 'spend'].sum(),
+                  all_three_combined_df.loc[all_three_combined_df['year'] == 2020, 'spend'].sum(),
+                  all_three_combined_df.loc[all_three_combined_df['year'] == 2021, 'spend'].sum()]
+    })
+    graphs['fig_spend_by_year'] = px.bar(spend_year_df, x="YEAR", y="SPEND", title='Spend by Year')
+
+    # spend by month
+    spend_month_df = pd.DataFrame({
+        'PURCHASE_MONTH': [month for month in range(1, 13)],
+        'SPEND': [
+            all_three_combined_df.loc[all_three_combined_df['purchase_month'] == month, 'spend'].sum() for month in
+            range(1, 13)
+        ]
+    })
+    graphs['fig_spend_by_month'] = px.line(spend_month_df, x="PURCHASE_MONTH", y="SPEND", title="Spend by Month",
+                                         markers=True)
+
+    # spend by week
+    spend_week_df = pd.DataFrame({
+        'WEEK_NUM': [week for week in range(1, 53)],
+        'SPEND': [
+            all_three_combined_df.loc[all_three_combined_df['week_num'] == week, 'spend'].sum() for week in range(1, 53)
+        ]
+    })
+    graphs['fig_spend_by_week'] = px.line(spend_week_df, x="WEEK_NUM", y="SPEND", title="Spend by Week", markers=True)
+
+    # spend by region
+    spend_region_df = pd.DataFrame({
+        'STORE_REGION': list(all_three_combined_df['store_r'].unique()),
+        'SPEND': [
+            all_three_combined_df.loc[all_three_combined_df['store_r'] == store_region, 'spend'].sum() for store_region
+            in list(all_three_combined_df['store_r'].unique())
+        ]
+    })
+    graphs['fig_spend_by_region'] = px.pie(spend_region_df, values='SPEND', names='STORE_REGION',
+                                         title='Spend by Store Region')
+
+    # spend by martial status
+    spend_marital_df = pd.DataFrame({
+        'MARITAL': list(all_three_combined_df['marital'].unique()),
+        'SPEND': [
+            all_three_combined_df.loc[all_three_combined_df['marital'] == marital_status, 'spend'].sum() for
+            marital_status in list(all_three_combined_df['marital'].unique())
+        ]
+    })
+    graphs['fig_spend_by_marital'] = px.pie(spend_marital_df, values='SPEND', names='MARITAL',
+                                          title='Spend by Martial Status')
+
+    # spend by number of children
+    spend_children_df = pd.DataFrame({
+        'CHILDREN': [children for children in list(all_three_combined_df['children'].unique())],
+        'SPEND': [
+            all_three_combined_df.loc[all_three_combined_df['children'] == children, 'spend'].sum() for children in
+            list(all_three_combined_df['children'].unique())
+        ]
+    })
+    graphs['fig_spend_by_children'] = px.pie(spend_children_df, values='SPEND', names='CHILDREN',
+                                           title='Spend by Number of Children')
+
+    # spend by household composition
+    spend_hshdcomposition_df = pd.DataFrame({
+        'HSHD_COMPOSITION': [hshd_composition for hshd_composition in
+                             list(all_three_combined_df['hshd_composition'].unique())],
+        'SPEND': [
+            all_three_combined_df.loc[all_three_combined_df['hshd_composition'] == hshd_composition, 'spend'].sum() for
+            hshd_composition in list(all_three_combined_df['hshd_composition'].unique())
+        ]
+    })
+    graphs['fig_spend_by_hshdcomposition'] = px.pie(spend_hshdcomposition_df, values='SPEND', names='HSHD_COMPOSITION',
+                                                 title='Spend by Household Composition')
+
+    # units by region over year
+    units_by_region_over_year_df = all_three_combined_df.groupby(['store_r', 'year']).sum()
+    units_by_region_over_year_df.reset_index(inplace=True)
+    graphs['fig_units_by_region_over_year'] = px.sunburst(units_by_region_over_year_df, path=['year', 'store_r'],
+                                                        values='units', title="Units by Region by Year")
+
+    # spend by region over year
+    graphs['fig_spend_by_region_over_year'] = px.sunburst(units_by_region_over_year_df, path=['year', 'store_r'],
+                                                        values='spend', title="Spend By Region by Year")
+
+    # unit / spend department
+    units_by_dept_over_year_df = all_three_combined_df.groupby(['department', 'year']).sum()
+    units_by_dept_over_year_df.reset_index(inplace=True)
+    units_by_dept_over_year_df['year'] = units_by_dept_over_year_df['year'].astype(str)
+    graphs['fig_units_by_dept_over_year_df'] = px.sunburst(units_by_dept_over_year_df, path=['year', 'department'],
+                                                         values='units', title="Units By Department")
+    graphs['fig_spend_by_dept_over_year_df'] = px.sunburst(units_by_dept_over_year_df, path=['year', 'department'],
+                                                         values='spend', title="Spend By Department")
+
+    # units / spend by incomerange over a year
+    units_by_incomerange_over_year_df = all_three_combined_df.groupby(['income_range', 'year']).sum()
+    units_by_incomerange_over_year_df.reset_index(inplace=True)
+    units_by_incomerange_over_year_df['year'] = units_by_incomerange_over_year_df['year'].astype(str)
+
+    # units by agerange over a year
+    units_by_agerange_over_year_df = all_three_combined_df.groupby(['age_range', 'year']).sum()
+    units_by_agerange_over_year_df.reset_index(inplace=True)
+    units_by_agerange_over_year_df['year'] = units_by_agerange_over_year_df['year'].astype(str)
+
+    graphs['fig_units_by_agerange_over_year'] = px.bar(units_by_agerange_over_year_df,
+                                                     x="age_range", y="units", color="year", barmode="group",
+                                                     title="Units by Age Range")
+
+    # spend by agerange over a year
+    graphs['fig_spend_by_agerange_over_year'] = px.bar(units_by_agerange_over_year_df,
+                                                     x="age_range", y="spend", color="year", barmode="group",
+                                                     title="Spend By Age Range")
+
+    # spend by agerange over a year
+    graphs['fig_units_by_incomerange_over_year_df'] = px.bar(units_by_incomerange_over_year_df,
+                                                           x="income_range", y="units", color="year", barmode="group",
+                                                           title="Units by Income Level")
+
+    graphs['fig_spend_by_incomerange_over_year_df'] = px.bar(units_by_incomerange_over_year_df,
+                                                           x="income_range", y="spend", color="year", barmode="group",
+                                                           title="Spend by Income Level")
+
+
+######################
+# Dashboard Layout
+######################
+
 def display_dashboard():
+    get_figures()
     dashboard_layout = html.Div(children=[
 
         html.H1(children=['Cloud Computing Final Project']),
         html.H3('Athulya Ganesh & Anusha Chitranshi'),
         html.Hr(),
         html.H4("Retail Dashboard"),
-        html.Hr(),html.Hr(),html.Hr(),
+        html.Hr(),
+         dbc.Row([
+
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_units_by_year'])]), width=3),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_year'])]), width=3),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_units_by_region_over_year'])]), width=3),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_region_over_year'])]), width=3)
+
+        ]),
+        html.Br(),
+        dbc.Row([
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_units_by_month'])]), width=6),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_units_by_week'])]), width=6),
+        ]),
+        html.Br(),
+        dbc.Row([
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_month'])]), width=6),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_week'])]), width=6),
+        ]),
+        html.Br(),
+        dbc.Row([
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_marital'])]), width=4),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_children'])]), width=4),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_hshdcomposition'])]), width=4)
+        ]),
+        html.Br(),
+        dbc.Row([
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_units_by_dept_over_year_df'])]), width=6),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_dept_over_year_df'])]), width=6)
+        ]),
+        html.Br(),
+        dbc.Row([
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_units_by_agerange_over_year'])]), width=6),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_agerange_over_year'])]), width=6),
+        ]),
+        html.Br(),
+        dbc.Row([
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_units_by_incomerange_over_year_df'])]), width=6),
+            dbc.Col(html.Div([dcc.Graph(figure=graphs['fig_spend_by_incomerange_over_year_df'])]), width=6),
+        ]),
+
+        html.Br(),html.Br(),
         dcc.Link(html.Button("See Questions and Answers Here", style={'backgroundColor': 'white'}), href="/questions", refresh=True),
         html.Br(),html.Br(),
         dcc.Link(html.Button("Logout", style={'backgroundColor': 'white'}), href="/logout", refresh=True), html.Hr(), html.Hr()], style={'margin' : 'auto', 'width' : '100%', 'text-align' : 'center','backgroundColor':'#B7F3B7' })

@@ -294,8 +294,8 @@ def serve_layout():
     get_figures()
     dashboard_layout = html.Div(children=[
 
-        html.H1(children=['CS 5165/6065 Final']),
-        html.P(['Mike Schladt', html.Br(), 'Nishil Faldu']),
+        html.H1(children=['Cloud Computing Final Project']),
+        html.P(['Athulya Ganesh', html.Br(), 'Anusha Chitranshi']),
         html.Hr(),
         html.H4("Retail KPI Dashboard"),
 
