@@ -2,36 +2,40 @@ from dash import Dash, html, dcc, dash_table
 import dash_bootstrap_components as dbc
 from dash.dependencies import State
 from dash_extensions.enrich import Output, DashProxy, Input, MultiplexerTransform
-from sqlalchemy import Table, create_engine
-from sqlalchemy.connectors import pyodbc
-from pyodbc import connect, Cursor
-from sqlalchemy.sql import select
+from sqlalchemy import Table, create_engine, MetaData
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import warnings
 import os
 from flask_login import login_user, logout_user, current_user, LoginManager, UserMixin
+from flask import redirect
 import configparser
-import plotly.express as px
-import pandas as pd
-import base64
-import io
+
 warnings.filterwarnings("ignore")
 
 ####################################
 # DATABASE Setup
 # ####################################
 
+#ANUSHAS DB
 username = 'anusha'
 password = 'Password123'
 database = 'cloud_db'
 hostname = 'cloud-server.mysql.database.azure.com'
 root_ca = '/Users/anusha/Desktop/Cloud_Computing/CS6065_Final_Public/DigiCertGlobalRootCA.crt.pem'
 
+
+# ATHULYA'S DB FOR TESTING
+#username = 'athulya'
+#password = 'Password123'
+#database = 'cloud-proj'
+#hostname = 'cloud-server-1.mysql.database.azure.com'
+#root_ca = '/Users/athulyaganesh/Desktop/Code/Cloud-Computing-Final-Project/DigiCertGlobalRootCA1.crt.pem'
+
 db_uri = f"mysql+pymysql://{username}:{password}@{hostname}/{database}"
 
 engine = create_engine(
-   f"mysql+pymysql://{username}:{password}@{hostname}/{database}",
+   db_uri,
    connect_args = {
     "ssl": {
             "ssl_ca": root_ca
@@ -39,14 +43,28 @@ engine = create_engine(
    }
 )
 
+metadata = MetaData()
+user_table = Table('users', metadata, autoload=True, autoload_with=engine)
+
+# with engine.connect() as connection:
+#     select_statement = user_table.select()
+#     result_set = connection.execute(select_statement)
+#     for row in result_set:
+#         print(row)
+
 db = SQLAlchemy()
 config = configparser.ConfigParser()
 
 class Users(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    users_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(15), unique=True, nullable = False)
     email = db.Column(db.String(50), unique=True)
-    password = db.Column(db.String(80))
+    password = db.Column(db.String(1000))
+
+    def get_id(self):
+        return self.users_id
+
+
 Users_tbl = Table('users', Users.metadata)
 
 
@@ -83,16 +101,22 @@ login_manager.login_view = '/'
 #User as base
 # Create User class with UserMixin
 class Users(UserMixin, Users):
-    pass
+
+    def get_id(self):
+        return self.users_id
 
 def display_dashboard():
     dashboard_layout = html.Div(children=[
 
         html.H1(children=['Cloud Computing Final Project']),
-        html.P(['Athulya Ganesh', html.Br(),'Anusha Chitranshi']),
+        html.H3('Athulya Ganesh & Anusha Chitranshi'),
         html.Hr(),
         html.H4("Retail Dashboard"),
-        dcc.Link(html.Button("Login", style={'backgroundColor': 'white'}), href="/", refresh=True)])
+        html.Hr(),html.Hr(),html.Hr(),
+        dcc.Link(html.Button("See Questions and Answers Here", style={'backgroundColor': 'white'}), href="/questions", refresh=True),
+        html.Br(),html.Br(),
+        dcc.Link(html.Button("Logout", style={'backgroundColor': 'white'}), href="/logout", refresh=True), html.Hr(), html.Hr()], style={'margin' : 'auto', 'width' : '100%', 'text-align' : 'center','backgroundColor':'#B7F3B7' })
+
     return dashboard_layout
 
 ####################################
@@ -191,7 +215,10 @@ questions = html.Div([
     html.P(html.I('2. TODO: ANSWER THIS ')), #TODO
     html.P(html.I('3. TODO: ANSWER THIS ')), #TODO
     html.P(html.I('4. TODO: END MY LIFE')), #TODO
-    html.P(html.I('5. TODO: GIVE ME AN A PLS')) #TODO
+    html.P(html.I('5. TODO: GIVE ME AN A PLS')), #TODO,
+    html.Hr(), html.Hr(),
+    dcc.Link(html.Button("Back to Dashboard", style={'backgroundColor':'white'}), href="/success", refresh=True),
+    html.Hr()
 ], style={'margin': 'auto', 'text-align': 'center', 'backgroundColor':'#C5DBFC'})
 
 
@@ -203,8 +230,8 @@ app.layout= html.Div([
 
 # callback to reload the user object
 @login_manager.user_loader
-def load_user(user_id):
-    return Users.query.get(int(user_id))
+def load_user(users_id):
+    return Users.query.get(int(users_id))
 
 @app.callback(
     Output('page-content', 'children')
@@ -250,6 +277,24 @@ def successful(n_clicks, input1, input2):
             pass
     else:
         pass
+
+
+@app.callback(
+    [Output('container-button-basic', "children")]
+    , [Input('submit-val', 'n_clicks')]
+    , [State('username', 'value'), State('password', 'value'), State('email', 'value')])
+def insert_users(n_clicks, un, pw, em):
+    if un is not None and pw is not None and em is not None:
+        hashed_password = generate_password_hash(pw, method='sha256')
+        ins = Users_tbl.insert().values(username=un, password=hashed_password, email=em)
+        conn = engine.connect()
+        conn.execute(ins)
+        conn.close()
+        return "You have been signed up. Please navigate to the login page now."
+    else:
+        return [html.Div([html.P('Already have a user account?')])]
+
+
 
 @app.callback(
     Output('output-state', 'children')
