@@ -26,7 +26,7 @@ username = 'anusha'
 password = 'Password123'
 database = 'sample3'
 hostname = 'cloud-server.mysql.database.azure.com'
-root_ca = '/Users/anusha/Desktop/Cloud_Computing/CS6065_Final_Public/DigiCertGlobalRootCA.crt.pem'
+root_ca = './DigiCertGlobalRootCA.crt.pem'
 
 
 # ATHULYA'S DB FOR TESTING
