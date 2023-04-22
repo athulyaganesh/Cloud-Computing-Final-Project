@@ -50,7 +50,6 @@ class Users(db.Model):
     email = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(80))
 
-
 Users_tbl = Table('users', Users.metadata)
 
 ####################################
